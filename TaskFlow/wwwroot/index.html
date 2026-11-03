@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaskFlow</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9745;</text></svg>" />
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <span class="brand-mark">TF</span>
+            <div>
+                <h1>TaskFlow</h1>
+                <p class="brand-sub">Task and project tracker</p>
+            </div>
+        </div>
+
+        <div class="topbar-actions">
+            <a class="link" href="/swagger" target="_blank" rel="noopener">API docs</a>
+            <button type="button" class="btn btn-ghost" id="theme-toggle" title="Switch theme">Light mode</button>
+            <button type="button" class="btn btn-primary" id="new-task-btn">New task</button>
+        </div>
+    </header>
+
+    <!-- Overall or per-project figures from /api/statistics. -->
+    <section class="stats" id="stats" aria-label="Statistics">
+        <div class="stat-cards" id="stat-cards"></div>
+        <div class="stat-breakdown" id="stat-breakdown"></div>
+    </section>
+
+    <main class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-head">
+                <h2>Projects</h2>
+                <button type="button" class="btn btn-small" id="new-project-btn">Add</button>
+            </div>
+            <ul class="project-list" id="project-list"></ul>
+        </aside>
+
+        <section class="content">
+            <form class="filters" id="filters" autocomplete="off">
+                <input type="search" id="filter-search" class="input" placeholder="Search titles…" maxlength="100" />
+
+                <select id="filter-status" class="input">
+                    <option value="">Any status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="InProgress">In progress</option>
+                    <option value="Completed">Completed</option>
+                </select>
+
+                <select id="filter-priority" class="input">
+                    <option value="">Any priority</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+
+                <select id="filter-overdue" class="input">
+                    <option value="">Overdue or not</option>
+                    <option value="true">Overdue only</option>
+                    <option value="false">Not overdue</option>
+                </select>
+
+                <select id="filter-sort" class="input">
+                    <option value="CreatedAt">Sort: created</option>
+                    <option value="DueDate">Sort: due date</option>
+                    <option value="Priority">Sort: priority</option>
+                    <option value="Title">Sort: title</option>
+                </select>
+
+                <button type="button" class="btn btn-ghost" id="filter-direction" data-descending="false" title="Toggle sort direction">Ascending</button>
+                <button type="button" class="btn btn-ghost" id="filter-reset">Reset</button>
+            </form>
+
+            <div class="list-head">
+                <h2 id="list-title">All tasks</h2>
+                <span class="muted" id="list-count"></span>
+            </div>
+
+            <ul class="task-list" id="task-list"></ul>
+
+            <nav class="pager" id="pager" aria-label="Pagination"></nav>
+        </section>
+    </main>
+
+    <!-- Task editor. Doubles as create and edit; the title and submit label change. -->
+    <dialog class="modal" id="task-dialog">
+        <form id="task-form" method="dialog" novalidate>
+            <h2 id="task-dialog-title">New task</h2>
+
+            <label for="task-title">Title <span class="req">*</span></label>
+            <input type="text" id="task-title" class="input" maxlength="100" required />
+            <p class="field-error" data-error-for="title"></p>
+
+            <label for="task-description">Description</label>
+            <textarea id="task-description" class="input" rows="3" maxlength="1000"></textarea>
+            <p class="field-error" data-error-for="description"></p>
+
+            <div class="form-row">
+                <div>
+                    <label for="task-status">Status</label>
+                    <select id="task-status" class="input">
+                        <option value="Pending">Pending</option>
+                        <option value="InProgress">In progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                    <p class="field-error" data-error-for="status"></p>
+                </div>
+                <div>
+                    <label for="task-priority">Priority</label>
+                    <select id="task-priority" class="input">
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                    </select>
+                    <p class="field-error" data-error-for="priority"></p>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div>
+                    <label for="task-due">Due date <span class="muted">(local time)</span></label>
+                    <input type="datetime-local" id="task-due" class="input" />
+                    <p class="field-error" data-error-for="dueDate"></p>
+                </div>
+                <div>
+                    <label for="task-project">Project</label>
+                    <select id="task-project" class="input"></select>
+                    <p class="field-error" data-error-for="projectId"></p>
+                </div>
+            </div>
+
+            <p class="form-error" id="task-form-error"></p>
+
+            <footer class="modal-actions">
+                <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+                <button type="submit" class="btn btn-primary" id="task-submit">Create task</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="project-dialog">
+        <form id="project-form" method="dialog" novalidate>
+            <h2 id="project-dialog-title">New project</h2>
+
+            <label for="project-name">Name <span class="req">*</span></label>
+            <input type="text" id="project-name" class="input" maxlength="100" required />
+            <p class="field-error" data-error-for="name"></p>
+
+            <label for="project-description">Description</label>
+            <textarea id="project-description" class="input" rows="3" maxlength="1000"></textarea>
+            <p class="field-error" data-error-for="description"></p>
+
+            <p class="form-error" id="project-form-error"></p>
+
+            <footer class="modal-actions">
+                <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+                <button type="submit" class="btn btn-primary" id="project-submit">Create project</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

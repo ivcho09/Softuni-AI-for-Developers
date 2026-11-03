@@ -1,12 +1,14 @@
 # TaskFlow
 
-A personal productivity REST API for managing tasks and projects, built with ASP.NET Core and
-Entity Framework Core on top of SQLite.
+A personal productivity application for managing tasks and projects: a REST API built with
+ASP.NET Core and Entity Framework Core on top of SQLite, plus a web interface served by the
+same application.
 
 TaskFlow lets you create projects, organise tasks inside them, assign priorities and deadlines,
 track completion, filter and search your task list, and read productivity statistics calculated
 from your actual data. Everything is persisted to a SQLite database file, so your data survives
-restarts. Every endpoint is documented and directly testable through Swagger UI.
+restarts. Every endpoint is documented and directly testable through Swagger UI, and the whole
+API is also usable through the browser interface at the application root.
 
 ---
 
@@ -16,6 +18,7 @@ restarts. Every endpoint is documented and directly testable through Swagger UI.
 - [Technology stack](#technology-stack)
 - [Architecture](#architecture)
 - [Getting started](#getting-started)
+- [The web interface](#the-web-interface)
 - [Database and migrations](#database-and-migrations)
 - [API reference](#api-reference)
 - [Example requests and responses](#example-requests-and-responses)
@@ -52,6 +55,12 @@ restarts. Every endpoint is documented and directly testable through Swagger UI.
 - Overall and per-project productivity figures, calculated in the database
 - Totals per status and per priority, overdue counts and a completion percentage
 
+**Web interface**
+- A single-page frontend over the whole API, served from the same application at `/`
+- Task board with inline complete/reopen, a project sidebar, live filtering and a statistics panel
+- Validation messages from the API shown under the field that caused them
+- Light and dark theme; no framework and no build step
+
 **Cross-cutting**
 - Input validation with FluentValidation and one consistent error shape for every failure
 - Centralised exception handling — no `try`/`catch` anywhere in the controllers
@@ -65,6 +74,7 @@ restarts. Every endpoint is documented and directly testable through Swagger UI.
 | Concern | Choice |
 |---|---|
 | Language / framework | C# 14, ASP.NET Core Web API, **.NET 10** |
+| Frontend | Plain HTML, CSS and ES modules, served as static files from `wwwroot/` |
 | Data access | Entity Framework Core 10 |
 | Database | SQLite (file-backed) |
 | Validation | FluentValidation 12 |
@@ -122,7 +132,8 @@ TaskFlow/
 ├── README.md
 ├── .gitignore
 │
-├── TaskFlow/                          # the Web API
+├── TaskFlow/                          # the Web API and the web interface it serves
+│   ├── wwwroot/                       # frontend: index.html, css/styles.css, js/api.js, js/app.js
 │   ├── Controllers/                   # TasksController, ProjectsController, StatisticsController
 │   ├── Models/                        # TaskItem, Project, enums, shared validation limits
 │   ├── DTOs/
@@ -168,20 +179,52 @@ dotnet restore
 dotnet run --project TaskFlow
 ```
 
-The API starts on **<http://localhost:5171>** and the database file `TaskFlow/taskflow.db` is
-created and migrated automatically on first start.
+The application starts on **<http://localhost:5171>** and the database file
+`TaskFlow/taskflow.db` is created and migrated automatically on first start.
 
 Then open:
 
 | | |
 |---|---|
-| **Swagger UI** | <http://localhost:5171/swagger> |
+| **Web interface** | <http://localhost:5171> |
+| Swagger UI | <http://localhost:5171/swagger> |
 | OpenAPI document | <http://localhost:5171/openapi/v1.json> |
 
-Browsing <http://localhost:5171> redirects to Swagger UI.
+One command serves both the web interface and the API. There is no separate frontend build
+step, no `npm install` and no second process to start.
 
 > To use the HTTPS profile instead, run `dotnet run --project TaskFlow --launch-profile https`
 > (<https://localhost:7277>). You may need `dotnet dev-certs https --trust` once.
+
+### The web interface
+
+`TaskFlow/wwwroot/` holds a single-page frontend built with plain HTML, CSS and ES modules —
+no framework and no build tooling, so it is served as static files by the same application.
+Because it shares the API's origin, it needs no CORS configuration.
+
+It covers the whole API surface:
+
+- **Tasks** — create, edit, delete, and tick the checkbox to complete or reopen a task.
+  Priority shows as a coloured left border, and overdue tasks are flagged in red.
+- **Projects** — the sidebar lists every project with its task count and filters the list
+  when clicked. Deleting a project warns that its tasks are kept and detached.
+- **Filtering** — search, status, priority and overdue filters, four sort fields with a
+  direction toggle, and pagination, all mapped onto `GET /api/tasks` query parameters.
+- **Statistics** — the cards and bar breakdowns at the top show overall figures, or the
+  selected project's figures, from `/api/statistics`.
+- **Validation** — the API's field level error messages are shown under the input that
+  caused them, so the backend stays the only source of validation rules.
+- A light and dark theme, remembered between visits.
+
+| File | Contents |
+|---|---|
+| `wwwroot/index.html` | Markup, including the task and project dialogs |
+| `wwwroot/css/styles.css` | Theme tokens and all styling |
+| `wwwroot/js/api.js` | `fetch` wrapper per endpoint, plus the `ApiError` that carries the server's error response |
+| `wwwroot/js/app.js` | State, rendering and event handling |
+
+> Dates are entered and displayed in your local time zone and sent to the API in UTC, which
+> is the only form the API accepts.
 
 ### Try it from the editor
 
@@ -666,7 +709,11 @@ These are conscious scope boundaries rather than defects:
   without one is never counted as overdue.
 - **Project names are not unique.** Two projects may share a name; they are distinguished by id.
 - **No soft delete.** Deleting a task removes the row permanently.
-- **Timestamps are UTC only.** No per-user time zone handling; clients are expected to convert
-  for display.
+- **Timestamps are UTC only.** The API neither stores nor applies a per-user time zone; clients
+  convert for display, which the web interface does using the browser's local zone.
+- **The web interface is deliberately framework-free.** It uses no bundler, no component model
+  and no client-side routing, which keeps it dependency-free and buildless but would not be the
+  right starting point for a much larger UI. It also does not poll, so changes made elsewhere
+  appear on the next action or page reload.
 - **Statistics are computed on request.** There is no caching, which is fine at personal data
   volumes but would need revisiting at scale.

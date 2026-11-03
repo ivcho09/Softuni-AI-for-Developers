@@ -71,6 +71,12 @@ using (var scope = app.Services.CreateScope())
 // Registered first so that it also catches failures from everything downstream.
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+// The frontend in wwwroot is served by this same application, so it calls the API
+// from the same origin and no CORS configuration is needed. Browsing the root
+// serves wwwroot/index.html; the Swagger UI stays available at /swagger.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapOpenApi();
 
 app.UseSwaggerUI(options =>
@@ -78,9 +84,6 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/openapi/v1.json", "TaskFlow API v1");
     options.DocumentTitle = "TaskFlow API";
 });
-
-// Browsing the root is more useful than a 404.
-app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
 app.MapControllers();
 
