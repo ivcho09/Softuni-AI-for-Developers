@@ -1,8 +1,20 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using TaskFlow.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Services -------------------------------------------------------------
+var connectionString = builder.Configuration.GetConnectionString("TaskFlowDatabase")
+    ?? throw new InvalidOperationException(
+        "Connection string 'TaskFlowDatabase' was not found in configuration.");
+
+builder.Services.AddDbContext<TaskFlowDbContext>(options =>
+    options.UseSqlite(connectionString));
+
+// Injected into services so that "now" can be controlled in unit tests.
+builder.Services.AddSingleton(TimeProvider.System);
+
 builder.Services.AddControllers();
 
 builder.Services.AddOpenApi(options =>
