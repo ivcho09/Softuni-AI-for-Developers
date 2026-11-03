@@ -1,6 +1,220 @@
 @TaskFlow_HostAddress = http://localhost:5171
 
-GET {{TaskFlow_HostAddress}}/weatherforecast/
+### Open the Swagger UI in a browser instead: http://localhost:5171/swagger
+
+### ---------------------------------------------------------------- Projects
+
+# Create a project
+POST {{TaskFlow_HostAddress}}/api/projects
+Content-Type: application/json
+
+{
+  "name": "University",
+  "description": "Coursework, assignments and exams"
+}
+
+###
+
+# List all projects (each includes a taskCount)
+GET {{TaskFlow_HostAddress}}/api/projects
 Accept: application/json
 
 ###
+
+# Get one project
+GET {{TaskFlow_HostAddress}}/api/projects/1
+Accept: application/json
+
+###
+
+# Update a project
+PUT {{TaskFlow_HostAddress}}/api/projects/1
+Content-Type: application/json
+
+{
+  "name": "University 2026",
+  "description": "Final year"
+}
+
+###
+
+# All tasks in a project
+GET {{TaskFlow_HostAddress}}/api/projects/1/tasks
+Accept: application/json
+
+###
+
+# Delete a project. Its tasks are kept and their projectId becomes null.
+DELETE {{TaskFlow_HostAddress}}/api/projects/1
+
+### ------------------------------------------------------------------- Tasks
+
+# Create a task inside a project
+POST {{TaskFlow_HostAddress}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Finish the database assignment",
+  "description": "Normalise the schema and hand in the ER diagram",
+  "status": "Pending",
+  "priority": "High",
+  "dueDate": "2026-12-01T09:00:00Z",
+  "projectId": 1
+}
+
+###
+
+# Create a task with no project and no deadline
+POST {{TaskFlow_HostAddress}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Buy milk",
+  "priority": "Low"
+}
+
+###
+
+# Get one task
+GET {{TaskFlow_HostAddress}}/api/tasks/1
+Accept: application/json
+
+###
+
+# Replace a task (full update)
+PUT {{TaskFlow_HostAddress}}/api/tasks/1
+Content-Type: application/json
+
+{
+  "title": "Finish the database assignment",
+  "description": "Schema handed in, diagram left",
+  "status": "InProgress",
+  "priority": "Urgent",
+  "dueDate": "2026-12-05T17:00:00Z",
+  "projectId": 1
+}
+
+###
+
+# Mark a task completed (stamps completedAt)
+POST {{TaskFlow_HostAddress}}/api/tasks/1/complete
+
+###
+
+# Reopen a task (clears completedAt)
+POST {{TaskFlow_HostAddress}}/api/tasks/1/reopen
+
+###
+
+# Delete a task
+DELETE {{TaskFlow_HostAddress}}/api/tasks/1
+
+### ------------------------------------------- Filtering, search and sorting
+
+# All tasks, first page
+GET {{TaskFlow_HostAddress}}/api/tasks
+Accept: application/json
+
+###
+
+# Filter by status and priority together
+GET {{TaskFlow_HostAddress}}/api/tasks?status=Pending&priority=High
+Accept: application/json
+
+###
+
+# Only overdue tasks (past deadline and not completed)
+GET {{TaskFlow_HostAddress}}/api/tasks?overdue=true
+Accept: application/json
+
+###
+
+# Search by title (case-insensitive substring)
+GET {{TaskFlow_HostAddress}}/api/tasks?search=homework
+Accept: application/json
+
+###
+
+# Only a project's tasks
+GET {{TaskFlow_HostAddress}}/api/tasks?projectId=1
+Accept: application/json
+
+###
+
+# Sort by deadline, soonest first
+GET {{TaskFlow_HostAddress}}/api/tasks?sortBy=dueDate
+Accept: application/json
+
+###
+
+# Sort by priority (most urgent first by default)
+GET {{TaskFlow_HostAddress}}/api/tasks?sortBy=priority
+Accept: application/json
+
+###
+
+# Sort by creation date, newest first
+GET {{TaskFlow_HostAddress}}/api/tasks?sortBy=createdAt&descending=true
+Accept: application/json
+
+###
+
+# Pagination
+GET {{TaskFlow_HostAddress}}/api/tasks?page=2&pageSize=5
+Accept: application/json
+
+###
+
+# Everything combined
+GET {{TaskFlow_HostAddress}}/api/tasks?status=Pending&priority=High&search=home&sortBy=dueDate&page=1&pageSize=10
+Accept: application/json
+
+### -------------------------------------------------------------- Statistics
+
+# Overall productivity statistics
+GET {{TaskFlow_HostAddress}}/api/statistics
+Accept: application/json
+
+###
+
+# Statistics for one project
+GET {{TaskFlow_HostAddress}}/api/statistics/projects/1
+Accept: application/json
+
+### ------------------------------------------------- Error handling examples
+
+# 400: empty title
+POST {{TaskFlow_HostAddress}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": ""
+}
+
+###
+
+# 400: unsupported status value
+POST {{TaskFlow_HostAddress}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Valid title",
+  "status": "Bogus"
+}
+
+###
+
+# 400: task referencing a project that does not exist
+POST {{TaskFlow_HostAddress}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Valid title",
+  "projectId": 987654
+}
+
+###
+
+# 404: task that does not exist
+GET {{TaskFlow_HostAddress}}/api/tasks/987654
+Accept: application/json

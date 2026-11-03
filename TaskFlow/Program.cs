@@ -1,11 +1,11 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi;
 using TaskFlow.Data;
 using TaskFlow.DTOs.Common;
 using TaskFlow.Interfaces;
 using TaskFlow.Middleware;
+using TaskFlow.OpenApi;
 using TaskFlow.Services;
 using TaskFlow.Validators;
 
@@ -54,20 +54,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 });
 
 // --- OpenAPI --------------------------------------------------------------
-builder.Services.AddOpenApi(options =>
-{
-    options.AddDocumentTransformer((document, _, _) =>
-    {
-        document.Info = new OpenApiInfo
-        {
-            Title = "TaskFlow API",
-            Version = "v1",
-            Description = "A personal productivity REST API for managing tasks, projects "
-                          + "and productivity statistics."
-        };
-        return Task.CompletedTask;
-    });
-});
+builder.Services.AddTaskFlowOpenApi();
 
 var app = builder.Build();
 
